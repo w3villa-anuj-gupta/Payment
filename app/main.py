@@ -4,10 +4,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
 import razorpay
+from pathlib import Path
 
 app = FastAPI()
-templates = Jinja2Templates(directory="app/templates")
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Get the base directory correctly for both local and Vercel environments
+BASE_DIR = Path(__file__).parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_your_key")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "your_secret")
