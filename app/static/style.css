@@ -1,0 +1,7 @@
+:root{--accent:#F37254}
+body{font-family:Inter,Segoe UI,Arial,sans-serif;background:#f7f7fa;color:#222;margin:0}
+.container{max-width:900px;margin:32px auto;padding:16px}
+.movies{display:flex;gap:12px;flex-wrap:wrap}
+.movie-card{background:white;border-radius:8px;padding:12px;box-shadow:0 6px 18px rgba(17,24,39,0.06);width:220px}
+button{background:var(--accent);color:white;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
+input[type=number]{width:56px}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Buy Movie Ticket</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Available Movies</h1>
+      <div class="movies">
+        {% for m in movies %}
+        <div class="movie-card">
+          <h3>{{ m.title }}</h3>
+          <p>Price: ₹{{ m.price }}</p>
+          <label>Qty: <input id="qty-{{ m.id }}" type="number" min="1" value="1" /></label>
+          <button onclick="buy({{ m.id }})">Buy</button>
+        </div>
+        {% endfor %}
+      </div>
+    </main>
+
+    <script>
+      const KEY_ID = "{{ key_id }}";
+    </script>
+    <script src="/static/app.js"></script>
+  </body>
+  </html>
