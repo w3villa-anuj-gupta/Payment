@@ -1,10 +1,10 @@
-# Movie Ticket Purchase (Razorpay + FastAPI)
+# Movie Ticket Purchase (Stripe + FastAPI)
 
-Small demo app showing a movie ticket purchase flow using FastAPI (backend) and a minimal HTML/CSS/JS frontend integrated with Razorpay Checkout.
+Small demo app showing a movie ticket purchase flow using FastAPI (backend) and a minimal HTML/CSS/JS frontend integrated with Stripe Checkout.
 
 Prerequisites
 - Python 3.9+
-- A Razorpay account and API keys (test keys are fine for development)
+- A Stripe account (test mode keys are fine for development)
 
 Setup
 1. Create a virtualenv and install deps:
@@ -15,11 +15,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. Set environment variables (replace with your keys):
+2. Set environment variables (replace with your Stripe keys):
 
 ```bash
-export RAZORPAY_KEY_ID=rzp_test_your_key
-export RAZORPAY_KEY_SECRET=your_secret
+export STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
+export STRIPE_SECRET_KEY=sk_test_your_secret_key
 ```
 
 Run
@@ -28,7 +28,7 @@ Run
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open `http://localhost:8000` and try purchasing a ticket. Payments made with test keys will be in Razorpay's test dashboard.
+Open `http://localhost:8000` and try purchasing a ticket. Payments made with test keys will be in your Stripe dashboard.
 
 Deploy to Vercel
 
@@ -48,13 +48,13 @@ git push -u origin main
    - Click "New Project" → Select your GitHub repo
    - Vercel auto-detects Python and uses `vercel.json`
    - Under "Environment Variables", add:
-     - `RAZORPAY_KEY_ID=rzp_test_your_key`
-     - `RAZORPAY_KEY_SECRET=your_secret`
+     - `STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key`
+     - `STRIPE_SECRET_KEY=sk_test_your_secret_key`
    - Click "Deploy"
 
-3. Once deployed, Vercel assigns a URL (e.g., `https://your-app.vercel.app`). Use Razorpay test keys for development.
+3. Once deployed, Vercel assigns a URL (e.g., `https://your-app.vercel.app`). Update your Stripe dashboard webhook URLs to match.
 
 Notes
 - This is a demo; adapt server-side verification, order persistence, and security before using in production.
-- For production, use Razorpay live keys and enable webhook verification.
+- For production, use Stripe live keys and enable webhook verification for order status updates.
 - Vercel's free tier includes generous serverless function limits.

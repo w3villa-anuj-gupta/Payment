@@ -3,8 +3,12 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
-import razorpay
+import stripe
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 
@@ -19,9 +23,9 @@ if STATIC_DIR.exists():
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_your_key")
-RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "your_secret")
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+# Initialize Stripe
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "sk_test_your_secret_key")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "pk_test_your_publishable_key")
 
 MOVIES = [
     {"id": 1, "title": "The Great Adventure", "price": 250},
@@ -32,11 +36,15 @@ MOVIES = [
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "movies": MOVIES, "key_id": RAZORPAY_KEY_ID})
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "movies": MOVIES,
+        "stripe_key": STRIPE_PUBLISHABLE_KEY
+    })
 
 
-@app.post("/create_order")
-async def create_order(payload: dict):
+@app.post("/create-checkout-session")
+async def create_checkout_session(payload: dict):
     try:
         movie_id = int(payload.get("movie_id"))
         qty = int(payload.get("qty", 1))
@@ -47,38 +55,50 @@ async def create_order(payload: dict):
     if not movie:
         raise HTTPException(status_code=400, detail="Invalid movie id")
 
-    amount = movie["price"] * qty * 100
-    order_data = {
-        "amount": amount,
-        "currency": "INR",
-        "payment_capture": "1",
-        "notes": {"movie": movie["title"], "qty": str(qty)},
-    }
-
-    order = client.order.create(data=order_data)
-    return JSONResponse({"order_id": order["id"], "amount": amount, "currency": "INR", "key": RAZORPAY_KEY_ID})
-
-
-@app.post("/verify")
-async def verify(payload: dict):
-    params = {
-        "razorpay_order_id": payload.get("razorpay_order_id"),
-        "razorpay_payment_id": payload.get("razorpay_payment_id"),
-        "razorpay_signature": payload.get("razorpay_signature"),
-    }
-
-    if not all(params.values()):
-        raise HTTPException(status_code=400, detail="Missing payment parameters")
-
     try:
-        client.utility.verify_payment_signature(params)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Signature verification failed")
-
-    return JSONResponse({"status": "success", "payment_id": params["razorpay_payment_id"]})
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "inr",
+                        "product_data": {
+                            "name": movie["title"],
+                            "description": f"Movie Ticket x{qty}",
+                        },
+                        "unit_amount": movie["price"] * 100,
+                    },
+                    "quantity": qty,
+                }
+            ],
+            mode="payment",
+            success_url="http://localhost:8000/success?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="http://localhost:8000/cancel",
+            metadata={"movie": movie["title"], "qty": str(qty)},
+        )
+        return JSONResponse({"url": session.url, "session_id": session.id})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/success", response_class=HTMLResponse)
 async def success(request: Request):
-    payment_id = request.query_params.get("payment_id")
-    return templates.TemplateResponse("success.html", {"request": request, "payment_id": payment_id})
+    session_id = request.query_params.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing session_id")
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        payment_id = session.payment_intent
+        return templates.TemplateResponse("success.html", {
+            "request": request,
+            "payment_id": payment_id,
+            "amount": session.amount_total / 100
+        })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/cancel", response_class=HTMLResponse)
+async def cancel(request: Request):
+    return templates.TemplateResponse("cancel.html", {"request": request})
